@@ -29,6 +29,7 @@ namespace Encrypt
             label2.Text = "";
             label3.Text = "";
             dec = false;
+            pass = true;
             checkBox1.Checked = false;
             DelFile = checkBox1.Checked;
         }
@@ -40,7 +41,8 @@ namespace Encrypt
         private long ConvNum(byte[] c)
         {
             long outnum = 1;
-            for (int i = 0; i < c.Length; i++) outnum *= Convert.ToUInt32(c[i]);
+            for (int i = 0; i < c.Length; i++) outnum *= Convert.ToInt64(c[i]);
+            this.Text = outnum.ToString();
             return outnum;
         }
         private bool GetExtension(long size)
@@ -58,7 +60,7 @@ namespace Encrypt
         {
             try
             {
-                if ((Key == 0) || (InFile.Length == 0) || (OutFile.Length == 0)) button3.Enabled = false;
+                if ((Key == 1) || (Key == 0) || (InFile.Length == 0) || (OutFile.Length == 0)) button3.Enabled = false;
                 else button3.Enabled = true;
                 if (InFile.Length == 0) checkBox1.Enabled = false;
                 else checkBox1.Enabled = true;
@@ -72,6 +74,8 @@ namespace Encrypt
         }
         private void Button1_Click(object sender, EventArgs e)
         {
+            dec = false;
+            pass = true;
             openFileDialog1.Title = "Select input file";
             openFileDialog1.FileName = "";
             openFileDialog1.ShowDialog();
@@ -154,7 +158,7 @@ namespace Encrypt
         }
         private void TextBox1_TextChanged(object sender, EventArgs e)
         {
-            if (textBox1.Text == "") Key = 0;
+            if (textBox1.Text == null ) Key = 0;
             else Key = ConvNum(Encoding.ASCII.GetBytes(textBox1.Text));
             Checkstatus();
         }
