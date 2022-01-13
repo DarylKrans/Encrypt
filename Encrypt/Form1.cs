@@ -42,7 +42,6 @@ namespace Encrypt
         {
             long outnum = 1;
             for (int i = 0; i < c.Length; i++) outnum *= Convert.ToInt64(c[i]);
-            this.Text = outnum.ToString();
             return outnum;
         }
         private bool GetExtension(long size)
