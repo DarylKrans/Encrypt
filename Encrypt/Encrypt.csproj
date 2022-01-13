@@ -6,6 +6,11 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <LangVersion>preview</LangVersion>
+    <ApplicationIcon>crypt.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="crypt.ico" />
+  </ItemGroup>
 
 </Project>

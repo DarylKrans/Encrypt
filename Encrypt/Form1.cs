@@ -10,69 +10,55 @@ namespace Encrypt
     {
         string InFile = "";
         string OutFile = "";
-        string Key = " ";
-        int dec = 0;
+        long Key = 0;
+        bool dec;
         bool DelFile;
-        private byte[] XOR(byte[] DataIn, string EncKey)
+        bool pass = true;
+        const string Phrase = "TestPhrase";
+        private byte[] XOR(byte[] DataIn, long EncKey)
         {
-            byte[] DataOut = new byte[DataIn.Length];
-            for (int t = 0; t < DataIn.Length; t++)
-            {
-                DataOut[t] = (byte)(DataIn[t] ^ EncKey[t % EncKey.Length] ^ ((DataIn.Length - t) * 124));
-            }
-            return DataOut;
+            for (int t = 0; t < DataIn.Length; t++) DataIn[t] = (byte)(DataIn[t] ^ (EncKey + (t * 125) / 3));
+            return DataIn;
         }
         void Clearstrings()
         {
             InFile = "";
             OutFile = "";
-            Key = " ";
+            Key = 0;
             textBox1.Text = "";
             label2.Text = "";
             label3.Text = "";
-            dec = 0;
+            dec = false;
             checkBox1.Checked = false;
             DelFile = checkBox1.Checked;
-            Truncate(Key, 1);
         }
-        private string Truncate(string value, int maxChars)
-        {
-            byte[] trunc = Encoding.ASCII.GetBytes(value);
-            byte[] dat = new byte[maxChars];
-            byte[] o = Encoding.ASCII.GetBytes("...");
-            string newvalue;
-            if (value.Length > maxChars)
-            {
-                for (int i = 0; i < 3; i++) dat[i] = o[i];
-                int t = 3;
-                {
-                    for (int i = value.Length - (maxChars) + 3; t < (maxChars); i++)
-                    {
-                        dat[t] = trunc[i];
-                        t++;
-                    }
-                }
-                newvalue = Encoding.ASCII.GetString(dat);
-            }
-            else newvalue = value;
-            return newvalue;
+        private static string Trunc(string value, int maxChars, string fname)
+        { 
+            return value.Length <= maxChars ? value : Path.GetPathRoot(fname) + "..." + value.Substring(value.Length - (maxChars),maxChars); 
         }
-        private string GetExtension(long size)
+        
+        private long ConvNum(byte[] c)
         {
-            byte[] buff = new byte[108];
+            long outnum = 1;
+            for (int i = 0; i < c.Length; i++) outnum *= Convert.ToUInt32(c[i]);
+            return outnum;
+        }
+        private bool GetExtension(long size)
+        {
+            byte[] buff = new byte[Phrase.Length];
             FileStream Source = new(InFile, FileMode.Open, FileAccess.Read);   // Open source file for read only
-            Source.Seek(size - 108, SeekOrigin.Begin);
-            Source.Read(buff, 0, 108);
+            Source.Seek(size - Phrase.Length, SeekOrigin.Begin);
+            Source.Read(buff, 0, Phrase.Length);
             Source.Close();
             string test = Encoding.Default.GetString(XOR(buff, Key));
-            if (test != "This is a test to see if the password entered is correct. If it is correct, this will be readable in english") test = "denied!";
-            return test;
+            if (test != Phrase) return false;
+            else return true;
         }
         void Checkstatus()
         {
             try
             {
-                if ((Key == " ") || (InFile.Length == 0) || (OutFile.Length == 0)) button3.Enabled = false;
+                if ((Key == 0) || (InFile.Length == 0) || (OutFile.Length == 0)) button3.Enabled = false;
                 else button3.Enabled = true;
                 if (InFile.Length == 0) checkBox1.Enabled = false;
                 else checkBox1.Enabled = true;
@@ -93,7 +79,7 @@ namespace Encrypt
             string ext = Path.GetExtension(InFile);
             if (ext == ".enc")
             {
-                dec = 1;
+                dec = true;
                 OutFile = Path.GetDirectoryName(InFile) + @"\" + Path.GetFileNameWithoutExtension(InFile);
             }
             else OutFile = InFile + ".enc";
@@ -102,34 +88,32 @@ namespace Encrypt
         }
         void UpdateLabels()
         {
-            label2.Text = "Input File : " + Truncate(InFile, 55);
-            label3.Text = "Output File: " + Truncate(OutFile, 55);
+            label2.Text = "In File  : " + Trunc(InFile, 50, InFile);
+            label3.Text = "Out File: " + Trunc(OutFile, 50, InFile);
         }
         private void Button3_Click(object sender, EventArgs e)
         {
             // Get file Length and set variables to handle file file in 1mb chunks
-            string ext = "This is a test to see if the password entered is correct. If it is correct, this will be readable in english";
             long size = new System.IO.FileInfo(InFile).Length;
             long chunk = 1024 * 1024;
             long sections = size / chunk;
             long chunksize = chunk;
             string encdec = "Encrypting File ";
             long p;
-            int fail = 0;
-            if (dec == 1)
+            if (dec == true)
             {
-                ext = GetExtension(size);
-                if (ext != "denied!")
+                pass = GetExtension(size);
+                if (pass == true)
                 {
-                    size -= 108;
+                    size -= Phrase.Length;
                     sections = size / chunk;
                     encdec = "Decrypting File ";
                 }
-                else fail = 1;
+                else pass = false;
             }
-            if (fail == 0)
+            if (pass == true)
             {
-                byte[] TestPhrase = XOR(Encoding.ASCII.GetBytes(ext), Key);
+                byte[] TestPhrase = XOR(Encoding.ASCII.GetBytes(Phrase), Key);
                 FileStream Source = new(InFile, FileMode.Open, FileAccess.Read);   // Open source file for read only
                 FileStream Dest = new(OutFile, FileMode.Create, FileAccess.Write);  // Open Destination file for append
                 // Start new Thread  -------------------------------- //
@@ -141,15 +125,14 @@ namespace Encrypt
                         byte[] buff = new byte[chunksize];
                         Source.Seek(i * chunk, SeekOrigin.Begin);           // seeks file location in source file
                         Source.Read(buff, 0, (int)chunksize);
-                        byte[] output = XOR(buff, Key);
-                        Dest.Write(output, 0, output.Length);
+                        Dest.Write(XOR(buff, Key), 0, buff.Length);
                         if (sections > 0)
                         {
                             p = i * 100 / sections;
                             this.Invoke(new Action(() => this.Text = encdec + p.ToString() + "%"));
                         }
                     }
-                    if (dec == 0) Dest.Write(TestPhrase, 0, TestPhrase.Length);
+                if (dec == false) Dest.Write(TestPhrase, 0, TestPhrase.Length);
                     Source.Close();
                     Dest.Close();
                     if (DelFile == true) File.Delete(InFile);
@@ -171,8 +154,8 @@ namespace Encrypt
         }
         private void TextBox1_TextChanged(object sender, EventArgs e)
         {
-            if (textBox1.Text == "") Key = " ";
-            else Key = textBox1.Text;
+            if (textBox1.Text == "") Key = 0;
+            else Key = ConvNum(Encoding.ASCII.GetBytes(textBox1.Text));
             Checkstatus();
         }
         private void CheckBox1_CheckedChanged(object sender, EventArgs e)
