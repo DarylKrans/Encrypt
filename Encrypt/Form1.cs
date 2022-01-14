@@ -17,9 +17,17 @@ namespace Encrypt
         const string Phrase = "TestPhrase";
         private byte[] XOR(byte[] DataIn, long EncKey)
         {
-            for (int t = 0; t < DataIn.Length; t++) DataIn[t] = (byte)(DataIn[t] ^ (EncKey + (t * 125) / 3));
+            string tKey = textBox1.Text;
+            for (int t = 0; t < DataIn.Length; t++) DataIn[t] = (byte)(DataIn[t] ^ (EncKey + (t * 125) / 3) ^ tKey[(t % tKey.Length)]);
             return DataIn;
         }
+        private byte[] XOR2(byte[] DataIn, long EncKey)
+        {
+            string tKey = textBox1.Text;
+            for (int t = 0; t < DataIn.Length; t++) DataIn[t] = (byte)(DataIn[t] ^ (EncKey + (t * 125) / 3) ^ tKey[(t % tKey.Length)]);
+            return DataIn;
+        }
+
         void Clearstrings()
         {
             InFile = "";
@@ -34,14 +42,15 @@ namespace Encrypt
             DelFile = checkBox1.Checked;
         }
         private static string Trunc(string value, int maxChars, string fname)
-        { 
-            return value.Length <= maxChars ? value : Path.GetPathRoot(fname) + "..." + value.Substring(value.Length - (maxChars),maxChars); 
+        {
+            return value.Length <= maxChars ? value : Path.GetPathRoot(fname) + "..." + value.Substring(value.Length - (maxChars), maxChars);
         }
-        
+
         private long ConvNum(byte[] c)
         {
             long outnum = 1;
-            for (int i = 0; i < c.Length; i++) outnum *= Convert.ToInt64(c[i]);
+            for (int i = 0; i < c.Length; i++) outnum += Convert.ToInt64(c[i]);
+            this.Text = outnum.ToString();
             return outnum;
         }
         private bool GetExtension(long size)
@@ -51,8 +60,7 @@ namespace Encrypt
             Source.Seek(size - Phrase.Length, SeekOrigin.Begin);
             Source.Read(buff, 0, Phrase.Length);
             Source.Close();
-            string test = Encoding.Default.GetString(XOR(buff, Key));
-            if (test != Phrase) return false;
+            if (Encoding.Default.GetString(XOR(buff, Key)) != Phrase) return false;
             else return true;
         }
         void Checkstatus()
@@ -102,7 +110,6 @@ namespace Encrypt
             long sections = size / chunk;
             long chunksize = chunk;
             string encdec = "Encrypting File ";
-            long p;
             if (dec == true)
             {
                 pass = GetExtension(size);
@@ -129,20 +136,16 @@ namespace Encrypt
                         Source.Seek(i * chunk, SeekOrigin.Begin);           // seeks file location in source file
                         Source.Read(buff, 0, (int)chunksize);
                         Dest.Write(XOR(buff, Key), 0, buff.Length);
-                        if (sections > 0)
-                        {
-                            p = i * 100 / sections;
-                            this.Invoke(new Action(() => this.Text = encdec + p.ToString() + "%"));
-                        }
+                        if (sections > 0) this.Invoke(new Action(() => this.Text = encdec + (i * 100 / sections) + "%"));
                     }
-                if (dec == false) Dest.Write(TestPhrase, 0, TestPhrase.Length);
+                    if (dec == false) Dest.Write(TestPhrase, 0, TestPhrase.Length);
                     Source.Close();
                     Dest.Close();
                     if (DelFile == true) File.Delete(InFile);
                     this.Invoke(new Action(() => this.Text = "Encrypt"));
                     this.Invoke(new Action(() => Clearstrings()));
                 })
-                { IsBackground = true };
+                { IsBackground = false };
                 // End new Thread workload -------------------- //
                 crypt.Start();
             }
@@ -153,11 +156,11 @@ namespace Encrypt
                 Thread.Sleep(1000);
                 UpdateLabels();
             }
-            
+
         }
         private void TextBox1_TextChanged(object sender, EventArgs e)
         {
-            if (textBox1.Text == null ) Key = 0;
+            if (textBox1.Text == null) Key = 0;
             else Key = ConvNum(Encoding.ASCII.GetBytes(textBox1.Text));
             Checkstatus();
         }
