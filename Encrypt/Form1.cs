@@ -21,13 +21,7 @@ namespace Encrypt
             for (int t = 0; t < DataIn.Length; t++) DataIn[t] = (byte)(DataIn[t] ^ (EncKey + (t * 125) / 3) ^ tKey[(t % tKey.Length)]);
             return DataIn;
         }
-        private byte[] XOR2(byte[] DataIn, long EncKey)
-        {
-            string tKey = textBox1.Text;
-            for (int t = 0; t < DataIn.Length; t++) DataIn[t] = (byte)(DataIn[t] ^ (EncKey + (t * 125) / 3) ^ tKey[(t % tKey.Length)]);
-            return DataIn;
-        }
-
+       
         void Clearstrings()
         {
             InFile = "";
