@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Encrypt": {
+      "commandName": "Project",
+      "commandLineArgs": "-debug"
+    }
+  }
+}
